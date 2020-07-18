@@ -1,0 +1,17 @@
+gitlab_artifact_get_iam_policy:
+  name:           "{{ gitlab_artifact }}-get"
+  description:    "Get artifacts from S3"
+  policy_info:    {}   # fact set from EC2 query
+  policy_content: |
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Action": [
+              "s3:GetObject"
+          ],
+          "Effect": "Allow",
+          "Resource": "arn:aws:s3:::{{ gitlab_artifact }}/*"
+        }
+      ]
+    }

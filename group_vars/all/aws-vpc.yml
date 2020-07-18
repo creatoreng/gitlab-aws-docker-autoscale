@@ -1,0 +1,24 @@
+vpc:
+  name:              "{{ org }}-{{ app }}"
+  region:            us-east-1
+  zone:              a
+  cidr:              "10.0.0.0/16"
+  vpc_info:          {}  # queried at runtime; leave blank
+  igw_info:          {}  # queried at runtime; leave blank
+  hosted_zone_info:  {}  # queried at runtime; leave blank
+  tags:
+    app:             "{{ app }}"
+    organization:    "{{ org }}"
+
+public_subnet:
+  name:              "{{ vpc.name }}-public"
+  cidr:              "10.0.0.0/24"
+  subnet_info:       {}  # queried at runtime; leave blank
+  nat_gateway_info:  {}  # queried at runtime; leave blank
+  route_table_info:  {}  # queried at runtime; leave blank
+
+private_subnet:
+  name:              "{{ vpc.name }}-private"
+  cidr:              "10.0.1.0/24"
+  subnet_info:       {}  # queried at runtime; leave blank
+  route_table_info:  {}  # queried at runtime; leave blank

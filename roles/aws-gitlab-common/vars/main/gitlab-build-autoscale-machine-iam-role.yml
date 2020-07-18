@@ -1,0 +1,28 @@
+gitlab_machine_iam_role:
+  name: "{{ gitlab_machine }}"
+  description: "Gitlab autoscale runner machine to build and deploy artifacts."
+  role_info: {}  # fact set by AWS query
+  trust_content: |
+    {
+      "Version": "2012-10-17",
+      "Statement": [
+        {
+          "Effect":    "Allow",
+          "Action":    "sts:AssumeRole",
+          "Principal":
+          {
+            "Service": "ec2.amazonaws.com"
+          }
+        },
+        {
+          "Effect":    "Allow",
+          "Action":    "sts:AssumeRole",
+          "Principal":
+          {
+            "Service": "s3.amazonaws.com"
+          }
+        }
+      ]
+    }
+  managed_policy:
+    - "{{ gitlab_artifact_put_iam_policy.policy_info.arn }}"

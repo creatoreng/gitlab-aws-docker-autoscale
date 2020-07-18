@@ -1,0 +1,46 @@
+---
+- name: Update packages and distribution
+  include: update.yml
+
+- name: Install apt tools
+  apt:
+    pkg:
+     - apt-transport-https
+     - ca-certificates
+     - software-properties-common
+    state: latest
+  become: true
+
+- name: Install python3-pip
+  apt:
+    pkg:
+      - virtualenv
+      - python3-setuptools
+      - python3-pip
+    state: latest
+  become: true
+
+- name: Install boto3
+  pip:
+    name:
+      - boto3
+      - botocore
+    state: latest
+  become: true
+
+- name: Install gzip
+  apt:
+    pkg:
+      - gzip
+      - unzip
+    state: latest
+  become: true
+
+# enable Ansible to sudo as unprivileged user
+- name: Install sudo & acl
+  apt:
+    pkg:
+      - sudo
+      - acl
+    state: latest
+  become: true

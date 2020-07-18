@@ -1,0 +1,41 @@
+---
+- name: "Start EC2 instance {{ runner.runner_name }}"
+  ec2_instance:
+    region:          "{{ vpc.region }}"
+    vpc_subnet_id:   "{{ runner.runner_subnet.subnet_info.id }}"
+    name:            "{{ runner.runner_name }}"
+    key_name:        "{{ runner.runner_key_name }}"
+    security_groups: "{{ runner.runner_security_groups }}"
+    image_id:        "{{ runner.runner_ami }}"
+    instance_role:   "{{ runner.runner_iam_role_name }}"
+    instance_type:   "{{ runner.runner_instance_type }}"
+    tags:            "{{ vpc.tags }}"
+    state:           running
+    purge_tags:      true
+    network:
+        # if you're able to VPN into the VPC, set this to false
+        assign_public_ip: true
+    wait:            true
+  register:          ec2_instance_info
+
+- name: "Add {{ runner.runner_name }} to Ansible inventory"
+  add_host:
+    hostname: "{{ runner.runner_name }}"
+    # TODO: If you're able to VPN into the VPC, use the private IP instead
+    ansible_host: "{{ ec2_instance_info.instances[0].public_ip_address }}"
+    ansible_user: ubuntu
+    ansible_ssh_private_key_file: "{{ runner.runner_key_file_private }}"
+    ansible_ssh_common_args: "-o StrictHostKeyChecking=no"
+    groups:   "{{ runner.ansible_groups }}"
+    runner:   "{{ runner }}"
+    ec2_info: "{{ ec2_instance_info.instances[0] }}"
+    vpc:      "{{ vpc }}"
+  changed_when: false  # changes in-memory inventory only, so no persistant change
+  when: ec2_instance_info.instances | length > 0
+
+- name: "Connect EC2 instance {{ runner.runner_name }}"
+  wait_for:
+    host: "{{ hostvars[runner.runner_name].ansible_host }}"
+    port: 22
+    timeout: 300
+  delegate_to: "127.0.0.1"

@@ -1,0 +1,12 @@
+---
+- name: Create {{ vpc.name }} VPC
+  include_tasks: vpc.yml
+
+- name: Create {{ public_subnet.name }} subnet
+  include_tasks: public-subnet.yml
+
+- name: Create {{ private_subnet.name }} subnet
+  include_tasks: private-subnet.yml
+
+- name: Create VPC endpoint for S3
+  include_tasks: s3-endpoint.yml

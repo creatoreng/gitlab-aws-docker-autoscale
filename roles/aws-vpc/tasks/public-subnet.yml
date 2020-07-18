@@ -1,0 +1,56 @@
+---
+- name: "Create {{ public_subnet.name }} subnet"
+  ec2_vpc_subnet:
+    vpc_id:         "{{ vpc.vpc_info.id }}"
+    cidr:           "{{ public_subnet.cidr }}"
+    az:             "{{ vpc.region }}{{ vpc.zone }}"
+    region:         "{{ vpc.region }}"
+    tags:           "{{ vpc.tags | combine({'Name':public_subnet.name}) }}"
+  register: result
+
+- name: "Set fact public_subnet.subnet_info"
+  set_fact:
+    public_subnet:
+      "{{ public_subnet | combine({ 'subnet_info': result.subnet }) }}"
+
+- name: "Create {{ public_subnet.name }} NAT gateway"
+  ec2_vpc_nat_gateway:
+    region:       "{{ vpc.region }}"
+    subnet_id:    "{{ public_subnet.subnet_info.id }}"
+    release_eip:  true
+    wait:         true
+    if_exist_do_not_create: true
+  register: result
+
+- name: "Set fact public_subnet.subnet_info"
+  set_fact:
+    public_subnet:
+      "{{ public_subnet | combine({ 'nat_gateway_info': result }) }}"
+
+- name: "Tag {{ public_subnet.name }} gateway"
+  ec2_tag:
+    region:       "{{ vpc.region }}"
+    resource:     "{{ public_subnet.nat_gateway_info.nat_gateway_id }}"
+    tags:         "{{ vpc.tags | combine({'Name':public_subnet.name}) }}"
+
+- name: "Tag {{ public_subnet.name }} gateway eip"
+  ec2_tag:
+    region:       "{{ vpc.region }}"
+    resource:     "{{ public_subnet.nat_gateway_info.nat_gateway_addresses[0].allocation_id }}"
+    tags:         "{{ vpc.tags | combine({'Name': public_subnet.name + '-nat-gateway'}) }}"
+
+- name: "Configure {{ public_subnet.name }} route table"
+  ec2_vpc_route_table:
+    vpc_id:       "{{ vpc.vpc_info.id }}"
+    subnets:      ["{{ public_subnet.subnet_info.id }}"]
+    region:       "{{ vpc.region }}"
+    tags:         "{{ vpc.tags | combine({'Name':public_subnet.name}) }}"
+    routes:
+      - dest:       "0.0.0.0/0"
+        gateway_id: "{{ vpc.igw_info.gateway_id }}"
+  register: ec2_vpc_route_table_info
+
+- name: Set fact public_subnet.route_table_info
+  set_fact:
+    public_subnet:
+      "{{ public_subnet | combine({'route_table_info': ec2_vpc_route_table_info.route_table}) }}"

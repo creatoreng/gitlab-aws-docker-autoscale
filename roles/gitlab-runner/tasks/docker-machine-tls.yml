@@ -1,0 +1,139 @@
+---
+# Docker-machine will generate a local CA to sign and verify
+# TLS certificates with machines it creates. The CA
+# is created when the first machine is spawned, and the
+# CA issuer will be the current user in the environment.
+# If the user is 'root', then TLS certificates will fail
+# when docker-machine is run as 'gitlab-runner'.
+#
+# Here, remove root certificates and spawn a machine,
+# so that docker-machine generates a CA with gitlab-runner as the user.
+
+- name: Stat gitlab-runner docker-machine certs
+  stat:
+    path: /home/gitlab-runner/.docker/machine/certs
+  become: true
+  register: docker_machine_gitlab_runner_certs
+
+# The following block creates a TLS certificate authority
+# for the user gitlab-runner; this is also a good sanity
+# check that networking, AWS permissions, etc, work by
+# showing docker-machine can create an EC2 instance.
+- name: Create docker-machine certs for gitlab-runner
+  when: docker_machine_gitlab_runner_certs.stat.exists == false
+  vars:
+    - instance_name: "{{ runner.runner_name }}-temp-cert-generator"
+  block:
+    - name: List docker-machine instance for TLS certificate generation
+      shell: docker-machine ls --quiet --filter "name={{ instance_name }}" --format "\{\{ .Name \}\}"
+      become: true
+      become_user: gitlab-runner
+      changed_when: false
+      failed_when: false
+      register: docker_machine_ls
+
+    - name: Remove orphaned docker machine for TLS certificate generation
+      when: docker_machine_ls.stdout_lines | length > 0
+      command: docker-machine rm --force -y {{ instance_name }}
+      become: true
+      become_user: gitlab-runner
+
+    - name: Terminate orphaned EC2 instance for TLS certificate generation
+      ec2_instance:
+        region:        "{{ vpc.region }}"
+        name:          "{{ instance_name }}"
+        vpc_subnet_id: "{{ runner.machine_subnet.subnet_info.id }}"
+        state: absent
+
+    - name: Remove orphaned EC2 keypair for TLS certificate generation
+      ec2_key:
+        region: "{{ vpc.region }}"
+        name:   "{{ instance_name }}"
+        state:  absent
+        wait:   true
+
+    - name: docker-machine create for TLS certificate generation
+      command: >
+        docker-machine create
+        --driver amazonec2
+        --amazonec2-region {{ vpc.region }}
+        --amazonec2-zone {{ vpc.zone }}
+        --amazonec2-vpc-id {{ vpc.vpc_info.id }}
+        --amazonec2-subnet-id {{ runner.machine_subnet.subnet_info.id }}
+        --amazonec2-use-private-address=true
+        --amazonec2-private-address-only=true
+        --amazonec2-security-group {{ runner.machine_security_group_name }}
+        "{{ instance_name }}"
+      become: true
+      become_user: gitlab-runner
+
+    - name: Stop docker machine for TLS certificate generation
+      command: docker-machine stop {{ instance_name }}
+      become: true
+      become_user: gitlab-runner
+
+    - name: Remove docker machine for TLS certificate generation
+      command: docker-machine rm --force -y {{ instance_name }}
+      become: true
+      become_user: gitlab-runner
+
+    - name: Terminate EC2 instance for TLS certificate generation
+      ec2_instance:
+        region:        "{{ vpc.region }}"
+        name:          "{{ instance_name }}"
+        vpc_subnet_id: "{{ runner.machine_subnet.subnet_info.id }}"
+        state: absent
+
+    - name: Remove EC2 keypair for TLS certificate generation
+      ec2_key:
+        region: "{{ vpc.region }}"
+        name:   "{{ instance_name }}"
+        state:  absent
+        wait:   true
+      become: true
+
+- name: Stat root docker-machine certs
+  stat:
+    path:  /root/.docker/machine/certs
+  become: true
+  register: docker_machine_root_certs
+
+- name: Remove root docker-machine certs
+  file:
+    path: /root/.docker/machine/certs
+    state: absent
+  become: true
+  when:
+    docker_machine_root_certs.stat.isdir is defined
+    and docker_machine_root_certs.stat.isdir
+
+- name: Create root docker-machine certs folder
+  file:
+    path:  /root/.docker/machine
+    state: directory
+  become: true
+
+- name: Symlink root docker-machine certs to gitlab-runner
+  file:
+    src:   /home/gitlab-runner/.docker/machine/certs
+    dest:  /root/.docker/machine/certs
+    owner: gitlab-runner
+    group: gitlab-runner
+    state: link
+    force: true
+  become: true
+
+# beware the issuer being root; this will cause TLS verification to fail
+# docker-machine is run as user 'gitlab-runner'
+- name: Verify gitlab-runner CA issuer
+  shell: "openssl x509 -in /home/gitlab-runner/.docker/machine/certs/ca.pem -text -noout | grep 'Issuer: O = gitlab-runner'"
+  become: true
+  become_user: gitlab-runner
+  changed_when: false
+
+# beware the issuer being root; this will cause TLS verification to fail
+# docker-machine is run as user 'gitlab-runner'
+- name: Verify root CA issuer
+  shell: "openssl x509 -in /root/.docker/machine/certs/ca.pem -text -noout | grep 'Issuer: O = gitlab-runner'"
+  become: true
+  changed_when: false

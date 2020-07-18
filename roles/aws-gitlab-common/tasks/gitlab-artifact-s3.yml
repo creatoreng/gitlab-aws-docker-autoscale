@@ -1,0 +1,51 @@
+---
+- name: "Create S3 bucket {{ gitlab_artifact }}"
+  s3_bucket:
+    region: "{{ vpc.region }}"
+    name:   "{{ gitlab_artifact }}"
+    policy: |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "allow-get-{{ app }}-vpce",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:GetObject",
+            "Resource": "arn:aws:s3:::{{ gitlab_artifact }}/*",
+            "Condition": {
+              "StringEquals": {
+                "aws:SourceVpce": "{{ vpc.s3_endpoint_info.vpc_endpoint_id }}"
+              }
+            }
+          },
+          {
+            "Sid": "deny-all-not-{{ app }}-vpc",
+            "Effect": "Deny",
+            "Principal": "*",
+            "Action": "s3:*",
+            "Resource": "arn:aws:s3:::{{ gitlab_artifact }}/*",
+            "Condition": {
+              "StringNotEquals": {
+                "aws:SourceVpc": "{{ vpc.vpc_info.id }}"
+              }
+            }
+          }
+        ]
+      }
+    tags:
+      app:          "{{ app }}"
+      organization: "{{ org }}"
+  register: s3_bucket_result
+
+- name: "Disable S3 bucket {{ gitlab_artifact }} public access."
+  command: |
+    aws s3api put-public-access-block
+    --bucket "{{ gitlab_artifact }}"
+    --public-access-block-configuration '{
+        "BlockPublicAcls": true,
+        "IgnorePublicAcls": true,
+        "BlockPublicPolicy": true,
+        "RestrictPublicBuckets": true
+      }'
+  when: s3_bucket_result.changed

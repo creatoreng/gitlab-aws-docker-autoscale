@@ -1,0 +1,13 @@
+vpc_icmp_security_group:
+  name: "{{ vpc.name }}-icmp"
+  description: "ICMP access from VPC {{ vpc.name }}"
+  group_info: {}   # fact set after EC2 query
+  rules:
+    - proto: icmp
+      from_port: -1
+      to_port: -1
+      cidr_ip:
+        - "{{ vpc.cidr }}"
+        # INSECURE: this allows SSH from any network; remove once configured
+        - "0.0.0.0/0"
+      rule_desc: ICMP

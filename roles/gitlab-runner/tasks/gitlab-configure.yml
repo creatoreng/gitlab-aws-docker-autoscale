@@ -1,0 +1,55 @@
+---
+- name: Deploy gitlab-runner base configuration template
+  template:
+    src:   "gitlab-config.toml"
+    dest:  "/etc/gitlab-runner/gitlab-config-template.toml"
+  become: true
+  register: gitlab_base_config
+
+- name: Deploy gitlab-runner build configuration template
+  template:
+    src:   "{{ runner.runner_config_template }}"
+    dest:  "/etc/gitlab-runner/runner-config-template.toml"
+  become: true
+  register: gitlab_runner_config
+
+# docker-machine will leave orphaned machines if the machine
+# or runner configuration changes. This can drive up AWS
+# costs, so be sure to remove machines prior to making changes.
+- name: Terminate running docker-machines
+  include_tasks: docker-machine-terminate.yml
+  when:
+    gitlab_base_config.changed
+    or gitlab_runner_config.changed
+
+- name: Remove orphaned runner registrations
+  command: gitlab-runner verify --delete
+  # prints "Updated /etc/gitlab-runner/config.toml" when changed
+  register: result
+  changed_when: result.stdout.find('config.toml') != -1
+  become: true
+
+# Note: important to unregister runners prior to resetting
+# the gitlab configuration. When the gitlab configuration
+# is reset, it loses informationa about registered runners
+# and hence cannot unregsiter them. They remain registered
+# in gitlab, but are no longer available.
+- name: Unregister gitlab-runners
+  command: gitlab-runner unregister --all-runners
+  become: true
+  # prints "Updated /etc/gitlab-runner/config.toml" when changed
+  changed_when: result.stdout.find('config.toml') != -1
+  when:
+    gitlab_base_config.changed
+    or gitlab_runner_config.changed
+
+- name: Reset gitlab configuration
+  copy:
+    src:   "/etc/gitlab-runner/gitlab-config-template.toml"
+    dest:  "/etc/gitlab-runner/config.toml"
+    remote_src: true
+    force:      true
+  become: true
+  when:
+    gitlab_base_config.changed
+    or gitlab_runner_config.changed

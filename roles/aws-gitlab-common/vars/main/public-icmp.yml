@@ -1,0 +1,11 @@
+public_icmp_security_group:
+  name: "public-icmp"
+  description: "ICMP access from any network."
+  group_info: {}   # fact set after EC2 query
+  rules:
+    - proto: icmp
+      from_port: -1
+      to_port: -1
+      cidr_ip:
+        - "0.0.0.0/0"
+      rule_desc: ICMP

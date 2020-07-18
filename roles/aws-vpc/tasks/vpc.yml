@@ -1,0 +1,26 @@
+---
+- name: "Create {{ vpc.name }} VPC"
+  ec2_vpc_net:
+    name:          "{{ vpc.name }}"
+    cidr_block:    "{{ vpc.cidr }}"
+    region:        "{{ vpc.region }}"
+    dns_hostnames: true
+    dns_support:   true
+    tags:          "{{ vpc.tags }}"
+  register: result
+
+- name: "Set fact vpc.vpc_info"
+  set_fact:
+    vpc: "{{ vpc | combine({ 'vpc_info': result.vpc }) }}"
+
+- name: "Create {{ vpc.name }} internet gateway"
+  ec2_vpc_igw:
+    vpc_id:        "{{ vpc.vpc_info.id }}"
+    region:        "{{ vpc.region }}"
+    state:         "present"
+    tags:          "{{ vpc.tags | combine({'Name':vpc.name}) }}"
+  register: result
+
+- name: "Set fact: vpc.igw_info"
+  set_fact:
+    vpc: "{{ vpc | combine({ 'igw_info': result }) }}"

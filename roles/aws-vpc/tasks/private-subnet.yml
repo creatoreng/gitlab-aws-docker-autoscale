@@ -1,0 +1,30 @@
+---
+- name: Create {{ private_subnet.name }} subnet
+  ec2_vpc_subnet:
+    vpc_id:  "{{ vpc.vpc_info.id }}"
+    cidr:    "{{ private_subnet.cidr }}"
+    az:      "{{ vpc.region }}{{ vpc.zone }}"
+    region:  "{{ vpc.region }}"
+    tags:    "{{ vpc.tags | combine({'Name':private_subnet.name}) }}"
+  register: result
+
+- name: "Set fact private_subnet.subnet_info"
+  set_fact:
+    private_subnet:
+      "{{ private_subnet | combine({ 'subnet_info': result.subnet }) }}"
+
+- name: Configure {{ private_subnet.name }} subnet route table
+  ec2_vpc_route_table:
+    vpc_id:   "{{ vpc.vpc_info.id }}"
+    subnets:  ["{{ private_subnet.subnet_info.id }}"]
+    region:   "{{ vpc.region }}"
+    tags:     "{{ vpc.tags | combine({'Name':private_subnet.name}) }}"
+    routes:
+      - dest:       "0.0.0.0/0"
+        gateway_id: "{{ public_subnet.nat_gateway_info.nat_gateway_id }}"
+  register: ec2_vpc_route_table_info
+
+- name: Set fact private_subnet.route_table_info
+  set_fact:
+    private_subnet:
+      "{{ private_subnet | combine({'route_table_info': ec2_vpc_route_table_info.route_table}) }}"

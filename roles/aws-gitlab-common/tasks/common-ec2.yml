@@ -1,0 +1,60 @@
+---
+- name: "Create EC2 security group {{ public_icmp_security_group.name }}"
+  ec2_group:
+    name:        "{{ public_icmp_security_group.name }}"
+    description: "{{ public_icmp_security_group.description }}"
+    vpc_id:      "{{ vpc.vpc_info.id }}"
+    region:      "{{ vpc.region }}"
+    tags:        "{{ vpc.tags }}"
+    rules:       "{{ public_icmp_security_group.rules }}"
+  register: ec2_group_info
+
+- name: "Set fact public_icmp_security_group.group_info"
+  set_fact:
+    public_icmp_security_group:
+      "{{ public_icmp_security_group | combine({'group_info':ec2_group_info}) }}"
+
+- name: "Create EC2 security group {{ vpc_icmp_security_group.name }}"
+  ec2_group:
+    name:        "{{ vpc_icmp_security_group.name }}"
+    description: "{{ vpc_icmp_security_group.description }}"
+    vpc_id:      "{{ vpc.vpc_info.id }}"
+    region:      "{{ vpc.region }}"
+    tags:        "{{ vpc.tags }}"
+    rules:       "{{ vpc_icmp_security_group.rules }}"
+  register: ec2_group_info
+
+- name: "Set fact vpc_icmp_security_group.group_info"
+  set_fact:
+    vpc_icmp_security_group:
+      "{{ vpc_icmp_security_group | combine({'group_info':ec2_group_info}) }}"
+
+- name: "Create EC2 security group {{ public_ssh_security_group.name }}"
+  ec2_group:
+    name:        "{{ public_ssh_security_group.name }}"
+    description: "{{ public_ssh_security_group.description }}"
+    vpc_id:      "{{ vpc.vpc_info.id }}"
+    region:      "{{ vpc.region }}"
+    tags:        "{{ vpc.tags }}"
+    rules:       "{{ public_ssh_security_group.rules }}"
+  register: ec2_group_info
+
+- name: "Set fact public_ssh_security_group.group_info"
+  set_fact:
+    public_ssh_security_group:
+      "{{ public_ssh_security_group | combine({'group_info':ec2_group_info}) }}"
+
+- name: "Create EC2 security group {{ vpc_ssh_security_group.name }}"
+  ec2_group:
+    name:        "{{ vpc_ssh_security_group.name }}"
+    description: "{{ vpc_ssh_security_group.description }}"
+    vpc_id:      "{{ vpc.vpc_info.id }}"
+    region:      "{{ vpc.region }}"
+    tags:        "{{ vpc.tags }}"
+    rules:       "{{ vpc_ssh_security_group.rules }}"
+  register: ec2_group_info
+
+- name: "Set fact vpc_ssh_security_group.group_info"
+  set_fact:
+    vpc_ssh_security_group:
+      "{{ vpc_ssh_security_group | combine({'group_info':ec2_group_info}) }}"

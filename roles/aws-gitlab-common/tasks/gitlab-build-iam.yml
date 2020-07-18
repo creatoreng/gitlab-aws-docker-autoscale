@@ -1,0 +1,45 @@
+---
+- name: "Create IAM role {{ gitlab_machine_iam_role.name }}"
+  iam_role:
+    region:         "{{ vpc.region }}"
+    name:           "{{ gitlab_machine_iam_role.name }}"
+    description:    "{{ gitlab_machine_iam_role.description }}"
+    managed_policy: "{{ gitlab_machine_iam_role.managed_policy }}"
+    assume_role_policy_document: "{{ gitlab_machine_iam_role.trust_content }}"
+    create_instance_profile: true
+  register: iam_role_info
+
+- name: Set fact gitlab_machine_iam_role.role_info
+  set_fact:
+    gitlab_machine_iam_role:
+      "{{ gitlab_machine_iam_role | combine({'role_info':iam_role_info}) }}"
+
+- name: "Create IAM policy {{ gitlab_machine_passrole_iam_policy.name }}"
+  iam_managed_policy:
+    policy_name:        "{{ gitlab_machine_passrole_iam_policy.name }}"
+    policy_description: "{{ gitlab_machine_passrole_iam_policy.description }}"
+    policy:             "{{ gitlab_machine_passrole_iam_policy.policy_content }}"
+    state:       present
+  register: iam_policy_info
+
+- name: "Set fact gitlab_machine_passrole_iam_policy.policy_info"
+  set_fact:
+    gitlab_machine_passrole_iam_policy:
+      "{{ gitlab_machine_passrole_iam_policy | combine({'policy_info':iam_policy_info.policy}) }}"
+  vars:
+    s3_bucket:   "{{ gitlab_artifact }}"
+
+- name: "Create IAM role {{ gitlab_runner_iam_role.name }}"
+  iam_role:
+    region:         "{{ vpc.region }}"
+    name:           "{{ gitlab_runner_iam_role.name }}"
+    description:    "{{ gitlab_runner_iam_role.description }}"
+    managed_policy: "{{ gitlab_runner_iam_role.managed_policy }}"
+    assume_role_policy_document: "{{ gitlab_runner_iam_role.trust_content }}"
+    create_instance_profile: true
+  register: iam_role_info
+
+- name: Set fact gitlab_runner_iam_role.role_info
+  set_fact:
+    gitlab_runner_iam_role:
+      "{{ gitlab_runner_iam_role | combine({'role_info':iam_role_info}) }}"
