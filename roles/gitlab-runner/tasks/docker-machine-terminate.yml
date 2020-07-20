@@ -39,3 +39,19 @@
       become: true
       ignore_errors: true
       with_items: "{{ docker_machine_ls.stdout_lines }}"
+
+    - name: Remove all docker-machine EC2 instances
+      ec2_instance:
+        region:        "{{ vpc.region }}"
+        name:          "{{ docker_cert_gen_instance_name }}"
+        vpc_subnet_id: "{{ runner.machine_subnet.subnet_info.id }}"
+        state: absent
+      with_items: "{{ docker_machine_ls.stdout_lines }}"
+
+    - name: Remove all docker-machine EC2 keypairs
+      ec2_key:
+        region: "{{ vpc.region }}"
+        name:   "{{ docker_cert_gen_instance_name }}"
+        state:  absent
+        wait:   true
+      with_items: "{{ docker_machine_ls.stdout_lines }}"

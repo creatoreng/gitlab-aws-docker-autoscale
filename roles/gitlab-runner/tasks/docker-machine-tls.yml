@@ -15,82 +15,61 @@
   become: true
   register: docker_machine_gitlab_runner_certs
 
-# The following block creates a TLS certificate authority
+# The following task creates a TLS certificate authority
 # for the user gitlab-runner; this is also a good sanity
 # check that networking, AWS permissions, etc, work by
 # showing docker-machine can create an EC2 instance.
-- name: Create docker-machine certs for gitlab-runner
+- name: docker-machine create certificate machine
   when: docker_machine_gitlab_runner_certs.stat.exists == false
-  vars:
-    - instance_name: "{{ runner.runner_name }}-temp-cert-generator"
-  block:
-    - name: List docker-machine instance for TLS certificate generation
-      shell: docker-machine ls --quiet --filter "name={{ instance_name }}" --format "\{\{ .Name \}\}"
-      become: true
-      become_user: gitlab-runner
-      changed_when: false
-      failed_when: false
-      register: docker_machine_ls
+  command: >
+    docker-machine create
+    --driver amazonec2
+    --amazonec2-region {{ vpc.region }}
+    --amazonec2-zone {{ vpc.zone }}
+    --amazonec2-vpc-id {{ vpc.vpc_info.id }}
+    --amazonec2-subnet-id {{ runner.machine_subnet.subnet_info.id }}
+    --amazonec2-use-private-address=true
+    --amazonec2-private-address-only=true
+    --amazonec2-security-group {{ runner.machine_security_group_name }}
+    "{{ docker_cert_gen_instance_name }}"
+  become: true
+  become_user: gitlab-runner
 
-    - name: Remove orphaned docker machine for TLS certificate generation
-      when: docker_machine_ls.stdout_lines | length > 0
-      command: docker-machine rm --force -y {{ instance_name }}
-      become: true
-      become_user: gitlab-runner
+- name: List docker-machine certificate machine
+  shell: docker-machine ls --quiet --filter "name={{ docker_cert_gen_instance_name }}" --format "\{\{ .Name \}\}"
+  become: true
+  become_user: gitlab-runner
+  changed_when: false
+  failed_when: false
+  register: docker_machine_ls
 
-    - name: Terminate orphaned EC2 instance for TLS certificate generation
-      ec2_instance:
-        region:        "{{ vpc.region }}"
-        name:          "{{ instance_name }}"
-        vpc_subnet_id: "{{ runner.machine_subnet.subnet_info.id }}"
-        state: absent
+- name: Stop docker-machine certificate machine
+  when: docker_machine_ls.stdout_lines | length > 0
+  command: docker-machine stop {{ docker_cert_gen_instance_name }}
+  ignore_errors: true
+  failed_when: false
+  become: true
+  become_user: gitlab-runner
 
-    - name: Remove orphaned EC2 keypair for TLS certificate generation
-      ec2_key:
-        region: "{{ vpc.region }}"
-        name:   "{{ instance_name }}"
-        state:  absent
-        wait:   true
+- name: Remove docker-machine certificate machine
+  when: docker_machine_ls.stdout_lines | length > 0
+  command: docker-machine rm --force -y {{ docker_cert_gen_instance_name }}
+  become: true
+  become_user: gitlab-runner
 
-    - name: docker-machine create for TLS certificate generation
-      command: >
-        docker-machine create
-        --driver amazonec2
-        --amazonec2-region {{ vpc.region }}
-        --amazonec2-zone {{ vpc.zone }}
-        --amazonec2-vpc-id {{ vpc.vpc_info.id }}
-        --amazonec2-subnet-id {{ runner.machine_subnet.subnet_info.id }}
-        --amazonec2-use-private-address=true
-        --amazonec2-private-address-only=true
-        --amazonec2-security-group {{ runner.machine_security_group_name }}
-        "{{ instance_name }}"
-      become: true
-      become_user: gitlab-runner
+- name: Terminate EC2 certificate machine instance
+  ec2_instance:
+    region:        "{{ vpc.region }}"
+    name:          "{{ docker_cert_gen_instance_name }}"
+    vpc_subnet_id: "{{ runner.machine_subnet.subnet_info.id }}"
+    state: absent
 
-    - name: Stop docker machine for TLS certificate generation
-      command: docker-machine stop {{ instance_name }}
-      become: true
-      become_user: gitlab-runner
-
-    - name: Remove docker machine for TLS certificate generation
-      command: docker-machine rm --force -y {{ instance_name }}
-      become: true
-      become_user: gitlab-runner
-
-    - name: Terminate EC2 instance for TLS certificate generation
-      ec2_instance:
-        region:        "{{ vpc.region }}"
-        name:          "{{ instance_name }}"
-        vpc_subnet_id: "{{ runner.machine_subnet.subnet_info.id }}"
-        state: absent
-
-    - name: Remove EC2 keypair for TLS certificate generation
-      ec2_key:
-        region: "{{ vpc.region }}"
-        name:   "{{ instance_name }}"
-        state:  absent
-        wait:   true
-      become: true
+- name: Remove EC2 certificate machine keypair
+  ec2_key:
+    region: "{{ vpc.region }}"
+    name:   "{{ docker_cert_gen_instance_name }}"
+    state:  absent
+    wait:   true
 
 - name: Stat root docker-machine certs
   stat:
