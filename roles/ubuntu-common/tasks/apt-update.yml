@@ -1,0 +1,28 @@
+---
+- name: apt install prerequisites
+  ansible.builtin.apt:
+    pkg:
+     - apt-transport-https
+     - ca-certificates
+     - software-properties-common
+     - aptitude
+    state: latest
+    force_apt_get: true # aptitude may not yet be installed
+  become: true
+
+- name: apt update cache
+  ansible.builtin.apt:
+    update_cache: true
+  become: true
+  changed_when: false # not an interesting change
+
+- name: apt upgrade packages
+  ansible.builtin.apt:
+    upgrade: safe
+  become: true
+
+- name: apt autoclean
+  ansible.builtin.apt:
+    autoremove: true
+    purge: true
+  become: true

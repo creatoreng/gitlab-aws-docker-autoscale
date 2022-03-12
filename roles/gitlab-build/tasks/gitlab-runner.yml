@@ -1,0 +1,41 @@
+---
+- name: Docker start gitlab-build
+  community.general.docker_container:
+    name: gitlab-build
+    image: gitlab/gitlab-runner:latest
+    pull: true
+    comparisons:
+      image: strict
+      env: strict
+      volumes: strict
+    container_default_behavior: no_defaults
+    command_handling: correct
+    state: started
+    restart_policy: unless-stopped
+    restart: true
+    stop_timeout: 120 # give enough time for docker-machines to stop
+    cleanup: true
+    user: gitlab-runner
+    hostname: gitlab-build
+    ports:
+      - "{{ gitlab_metrics_server_port }}:{{ gitlab_metrics_server_port }}/tcp"
+      - "{{ gitlab_session_server_port }}:{{ gitlab_session_server_port }}/tcp"
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock
+      # entrypoint
+      - /opt/gitlab-build/entrypoint.sh:/opt/gitlab-build/entrypoint.sh:ro
+      # gitlab runner configuration
+      - /opt/gitlab-build/gitlab-runner:/opt/gitlab-runner:ro
+      # gitlab runner active configuration -- generated at runtime by gitlab-runner
+      # persist to allow restarts to unregister orphaned gitlab runners
+      - /opt/gitlab-build/gitlab-runner/config.toml.cache:/home/gitlab-runner/.gitlab-runner/config.toml
+      # persist docker machine configuration to allow restarts to stop & rm orphaned docker machines
+      - /opt/gitlab-build/docker-machine:/home/gitlab-runner/.docker/machine
+    entrypoint: ["/opt/gitlab-build/entrypoint.sh"]
+    working_dir: /home/gitlab-runner
+    healthcheck:
+      test: ["CMD", "curl", "-fI", "127.0.0.1:{{ gitlab_metrics_server_port }}/debug/jobs/list"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+      start_period: 30s

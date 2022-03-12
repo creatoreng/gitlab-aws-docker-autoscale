@@ -1,0 +1,72 @@
+---
+- name: "IAM role create gitlab-build-autoscale-machine"
+  community.aws.iam_role:
+    region:         "{{ vpc.region }}"
+    name:           "gitlab-build-autoscale-machine"
+    description:    "Gitlab autoscale machine to build artifacts."
+    managed_policy: "gitlab-artifact-put"
+    create_instance_profile: true
+    assume_role_policy_document: |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect":    "Allow",
+            "Action":    "sts:AssumeRole",
+            "Principal":
+            {
+              "Service": "ec2.amazonaws.com"
+            }
+          },
+          {
+            "Effect":    "Allow",
+            "Action":    "sts:AssumeRole",
+            "Principal":
+            {
+              "Service": "s3.amazonaws.com"
+            }
+          }
+        ]
+      }
+  register: iamrole
+
+- name: "IAM managed policy create gitlab-build-autoscale-machine-passrole"
+  community.aws.iam_managed_policy:
+    policy_name:        "gitlab-build-autoscale-machine-passrole"
+    policy_description: "Pass IAM instance role to spawned machines."
+    state: present
+    policy: |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Action": "iam:PassRole",
+            "Resource": "{{ iamrole.arn }}"
+          }
+        ]
+      }
+
+- name: "IAM role create gitlab-build-autoscale-runner"
+  community.aws.iam_role:
+    region:         "{{ vpc.region }}"
+    name:           "gitlab-build-autoscale-runner"
+    description:    "Gitlab autoscale runner to spawn docker-machines and pass roles."
+    managed_policy:
+      - docker-machine-spawn
+      - gitlab-build-autoscale-machine-passrole
+    create_instance_profile: true
+    assume_role_policy_document: |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect":    "Allow",
+            "Action":    "sts:AssumeRole",
+            "Principal":
+            {
+              "Service": "ec2.amazonaws.com"
+            }
+          }
+        ]
+      }

@@ -1,24 +1,32 @@
+---
+intranet:
+  cidr: "10.0.0.0/8"
+
 vpc:
-  name:              "{{ org }}-{{ app }}"
+  name:              "gitlab"
+  cidr:              "10.0.0.0/16"
   region:            us-east-1
   zone:              a
-  cidr:              "10.0.0.0/16"
-  vpc_info:          {}  # queried at runtime; leave blank
-  igw_info:          {}  # queried at runtime; leave blank
-  hosted_zone_info:  {}  # queried at runtime; leave blank
   tags:
-    app:             "{{ app }}"
-    organization:    "{{ org }}"
+    app:             "gitlab"
+  # the following can be user-specified, or if empty, populated at runtime
+  # by the vpc playbook. They must be specified for other playbooks.
+  id:                ""
+  inet_gateway_id:   ""
 
-public_subnet:
-  name:              "{{ vpc.name }}-public"
-  cidr:              "10.0.0.0/24"
-  subnet_info:       {}  # queried at runtime; leave blank
-  nat_gateway_info:  {}  # queried at runtime; leave blank
-  route_table_info:  {}  # queried at runtime; leave blank
-
-private_subnet:
-  name:              "{{ vpc.name }}-private"
+subnet_public:
+  name:              "gitlab-public"
   cidr:              "10.0.1.0/24"
-  subnet_info:       {}  # queried at runtime; leave blank
-  route_table_info:  {}  # queried at runtime; leave blank
+  # the following can be user-specified, or if empty, populated at runtime
+  # by the vpc playbook. They must be specified for other playbooks.
+  id:                ""
+  nat_gateway_id:    ""
+  route_table_id:    ""
+
+subnet_private:
+  name:              "gitlab-private"
+  cidr:              "10.0.2.0/24"
+  # the following can be user-specified, or if empty, populated at runtime
+  # by the vpc playbook. They must be specified for other playbooks.
+  id:                ""
+  route_table_id:    ""

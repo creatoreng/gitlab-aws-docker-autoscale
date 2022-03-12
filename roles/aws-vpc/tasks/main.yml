@@ -1,12 +1,21 @@
----
-- name: Create {{ vpc.name }} VPC
-  include_tasks: vpc.yml
+- name: "Create {{ vpc.name }} VPC"
+  ansible.builtin.import_tasks: vpc.yml
 
-- name: Create {{ public_subnet.name }} subnet
-  include_tasks: public-subnet.yml
+- name: "Create {{ subnet_public.name }} subnet"
+  ansible.builtin.import_tasks: subnet-public.yml
 
-- name: Create {{ private_subnet.name }} subnet
-  include_tasks: private-subnet.yml
+- name: "Create {{ subnet_private.name }} subnet"
+  ansible.builtin.import_tasks: subnet-private.yml
 
-- name: Create VPC endpoint for S3
-  include_tasks: s3-endpoint.yml
+- name: "Create {{ vpc.name }} S3 endpoint"
+  ansible.builtin.import_tasks: s3-endpoint.yml
+
+- name: "Create {{ vpc.name }} EC2 security groups"
+  ansible.builtin.import_tasks: ec2-security-groups.yml
+
+- name: Print VPC info
+  ansible.builtin.debug:
+    msg:
+      - "vpc: {{ vpc }}"
+      - "subnet_public: {{ subnet_public }}"
+      - "subnet_private: {{ subnet_private }}"

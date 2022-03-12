@@ -1,0 +1,26 @@
+---
+- name: Directory create /opt/gitlab-build
+  ansible.builtin.file:
+    path:  /opt/gitlab-build
+    state: directory
+    owner: "{{ ansible_user }}"
+    group: "{{ ansible_user }}"
+  become: true
+
+- name: Directory create /opt/gitlab-build/gitlab-runner
+  ansible.builtin.file:
+    path:  /opt/gitlab-build/gitlab-runner
+    state: directory
+
+- name: Directory create /opt/gitlab-build/docker-machine
+  ansible.builtin.file:
+    path:  /opt/gitlab-build/docker-machine
+    state: directory
+    # gitlab-runner container needs to write to this directory
+    # which may have an arbitrary UID
+    mode:  u+rwx,g+rwx,o+rwx
+
+- name: Directory create {{ ansible_env.HOME }}/.docker
+  ansible.builtin.file:
+    path: "{{ ansible_env.HOME }}/.docker"
+    state: directory

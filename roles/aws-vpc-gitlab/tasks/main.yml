@@ -1,0 +1,15 @@
+---
+- name: Configure gitlab artifact
+  ansible.builtin.import_tasks: gitlab-artifact.yml
+
+- name: Configure docker-machine
+  ansible.builtin.import_tasks: docker-machine-ec2.yml
+
+- name: Configure gitlab-build IAM
+  ansible.builtin.import_tasks: gitlab-build-iam.yml
+
+- name: Configure gitlab-build EC2
+  ansible.builtin.import_tasks: gitlab-runner-ec2.yml
+
+- name: Configure instance instance-gitlab-runner
+  ansible.builtin.import_tasks: instance-gitlab-runner.yml

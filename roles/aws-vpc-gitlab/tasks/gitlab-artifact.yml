@@ -1,0 +1,75 @@
+---
+- name: "S3 bucket {{ s3_artifact_bucket }} create"
+  amazon.aws.s3_bucket:
+    region: "{{ vpc.region }}"
+    name:   "{{ s3_artifact_bucket }}"
+    policy: |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Sid": "{{ s3_artifact_bucket }} allow all",
+            "Effect": "Allow",
+            "Principal": "*",
+            "Action": "s3:*",
+            "Resource": "arn:aws:s3:::{{ s3_artifact_bucket }}/*"
+          }
+        ]
+      }
+    tags:
+      app:  "gitlab"
+  register: s3_bucket_result
+
+- name: "S3 bucket {{ s3_artifact_bucket }} deny public access."
+  ansible.builtin.command: |
+    aws s3api put-public-access-block
+    --bucket "{{ s3_artifact_bucket }}"
+    --public-access-block-configuration '{
+        "BlockPublicAcls": true,
+        "IgnorePublicAcls": true,
+        "BlockPublicPolicy": true,
+        "RestrictPublicBuckets": true
+      }'
+  when: s3_bucket_result.changed
+
+- name: "IAM create managed policy gitlab-artifact-get"
+  community.aws.iam_managed_policy:
+    policy_name:        "gitlab-artifact-get"
+    policy_description: "Get artifacts from S3 bucket"
+    state: present
+    policy: |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Action": [
+                "s3:GetObject"
+            ],
+            "Effect": "Allow",
+            "Resource": "arn:aws:s3:::{{ s3_artifact_bucket }}/*"
+          }
+        ]
+      }
+
+- name: "IAM create managed policy gitlab-artifact-put"
+  community.aws.iam_managed_policy:
+    policy_name:        "gitlab-artifact-put"
+    policy_description: "Put artifacts to S3 bucket"
+    state: present
+    policy: |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Action": [
+                "s3:ListObjectsV2",
+                "s3:GetObject",
+                "s3:GetObjectVersions",
+                "s3:PutObject",
+                "s3:DeleteObject"
+            ],
+            "Effect": "Allow",
+            "Resource": "arn:aws:s3:::{{ s3_artifact_bucket }}/*"
+          }
+        ]
+      }

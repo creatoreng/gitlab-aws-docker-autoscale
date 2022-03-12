@@ -1,0 +1,26 @@
+---
+- name: apt update cache
+  ansible.builtin.apt:
+    update_cache: true
+    cache_valid_time: 3600 # 1 hr
+    force_apt_get: true # aptitude may not be installed
+  become: true
+
+- name: apt update
+  ansible.builtin.import_tasks: apt-update.yml
+
+- name: pip update
+  ansible.builtin.import_tasks: pip-update.yml
+
+- name: install Ansible prerequisites
+  ansible.builtin.import_tasks: ansible.yml
+
+- name: install ntp
+  ansible.builtin.import_tasks: ntp.yml
+
+- name: Query restart required
+  ansible.builtin.stat:
+    path: /var/run/reboot-required
+  register: stat_result
+  changed_when: stat_result.stat.exists
+  notify: reboot

@@ -1,3 +1,0 @@
----
-- name: Instal docker engine
-  include: docker-ce.yml

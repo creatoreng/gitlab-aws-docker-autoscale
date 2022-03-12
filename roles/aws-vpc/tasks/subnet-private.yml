@@ -1,0 +1,31 @@
+---
+- name: "Create {{ subnet_private.name }} subnet"
+  amazon.aws.ec2_vpc_subnet:
+    vpc_id:  "{{ vpc.id }}"
+    cidr:    "{{ subnet_private.cidr }}"
+    az:      "{{ vpc.region }}{{ vpc.zone }}"
+    region:  "{{ vpc.region }}"
+    tags:    "{{ vpc.tags | combine({'Name':subnet_private.name}) }}"
+  register: result
+
+- name: "Set fact subnet_private.id"
+  ansible.builtin.set_fact:
+    subnet_private: "{{ subnet_private | combine({'id': result.subnet.id}) }}"
+  when: subnet_private.id == ""
+
+- name: "Configure {{ subnet_private.name }} subnet route table"
+  amazon.aws.ec2_vpc_route_table:
+    vpc_id:   "{{ vpc.id }}"
+    subnets:  ["{{ subnet_private.id }}"]
+    region:   "{{ vpc.region }}"
+    tags:     "{{ vpc.tags | combine({'Name':subnet_private.name}) }}"
+    routes:
+      - dest:       "0.0.0.0/0"
+        gateway_id: "{{ subnet_public.nat_gateway_id }}"
+    purge_routes: false
+  register: result
+
+- name: "Set fact subnet_private.route_table_id"
+  ansible.builtin.set_fact:
+    subnet_private: "{{ subnet_private | combine({'route_table_id': result.route_table.route_table_id}) }}"
+  when: subnet_private.route_table_id == ""

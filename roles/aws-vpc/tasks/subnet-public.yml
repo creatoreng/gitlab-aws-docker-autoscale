@@ -1,0 +1,57 @@
+---
+- name: "Create {{ subnet_public.name }} subnet"
+  amazon.aws.ec2_vpc_subnet:
+    vpc_id:         "{{ vpc.id }}"
+    cidr:           "{{ subnet_public.cidr }}"
+    az:             "{{ vpc.region }}{{ vpc.zone }}"
+    region:         "{{ vpc.region }}"
+    tags:           "{{ vpc.tags | combine({'Name':subnet_public.name}) }}"
+  register: result
+
+- name: "Set fact subnet_public.id"
+  ansible.builtin.set_fact:
+    subnet_public: "{{ subnet_public | combine({'id': result.subnet.id}) }}"
+  when: subnet_public.id == ""
+
+- name: "Create {{ subnet_public.name }} NAT gateway"
+  amazon.aws.ec2_vpc_nat_gateway:
+    region:       "{{ vpc.region }}"
+    subnet_id:    "{{ subnet_public.id }}"
+    release_eip:  true
+    wait:         true
+    if_exist_do_not_create: true
+  register: nat_gateway_info
+
+- name: "Set fact subnet_public.nat_gateway_id"
+  ansible.builtin.set_fact:
+    subnet_public: "{{ subnet_public | combine({'nat_gateway_id': nat_gateway_info.nat_gateway_id}) }}"
+  when: subnet_public.nat_gateway_id == ""
+
+- name: "Tag {{ subnet_public.name }} gateway"
+  amazon.aws.ec2_tag:
+    region:       "{{ vpc.region }}"
+    resource:     "{{ subnet_public.nat_gateway_id }}"
+    tags:         "{{ vpc.tags | combine({'Name':subnet_public.name}) }}"
+
+- name: "Tag {{ subnet_public.name }} gateway eip"
+  amazon.aws.ec2_tag:
+    region:       "{{ vpc.region }}"
+    resource:     "{{ nat_gateway_info.nat_gateway_addresses[0].allocation_id }}"
+    tags:         "{{ vpc.tags | combine({'Name': subnet_public.name + '-nat-gateway'}) }}"
+
+- name: "Configure {{ subnet_public.name }} route table"
+  amazon.aws.ec2_vpc_route_table:
+    vpc_id:       "{{ vpc.id }}"
+    subnets:      ["{{ subnet_public.id }}"]
+    region:       "{{ vpc.region }}"
+    tags:         "{{ vpc.tags | combine({'Name':subnet_public.name}) }}"
+    routes:
+      - dest:       "0.0.0.0/0"
+        gateway_id: "{{ vpc.inet_gateway_id }}"
+    purge_routes: false
+  register: result
+
+- name: "Set fact subnet_public.route_table_id"
+  ansible.builtin.set_fact:
+    subnet_public: "{{ subnet_public | combine({'route_table_id': result.route_table.route_table_id}) }}"
+  when: subnet_public.route_table_id == ""

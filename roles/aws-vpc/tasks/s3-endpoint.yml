@@ -1,23 +1,20 @@
 - name: "Create VPC endpoint to S3"
-  ec2_vpc_endpoint:
+  amazon.aws.ec2_vpc_endpoint:
     region:  "{{ vpc.region }}"
-    vpc_id:  "{{ vpc.vpc_info.id }}"
+    vpc_id:  "{{ vpc.id }}"
     service: "com.amazonaws.{{ vpc.region }}.s3"
-    # wait may result in Ansible querying an endpoint ID before it can be
-    # queried, returning an error. This step is far upstream of any dependencies,
-    # so it should be safe to commit and continue without verification.
-    wait:    false
+    # wait may result in Ansible querying an endpoint ID too fast for a
+    # newly created endpoint to respond, returning an error.
+    # As long as this step is far upstream of any dependencies,
+    # it should be safe to continue without verification.
+    wait:    true
     route_table_ids:
-      - "{{ public_subnet.route_table_info.route_table_id }}"
-      - "{{ private_subnet.route_table_info.route_table_id }}"
-  register: ec2_vpc_endpoint_info
+      - "{{ subnet_public.route_table_id }}"
+      - "{{ subnet_private.route_table_id }}"
+  register: result
 
 - name: "Tag VPC endpoint to S3"
-  ec2_tag:
+  amazon.aws.ec2_tag:
     region:       "{{ vpc.region }}"
-    resource:     "{{ ec2_vpc_endpoint_info.result.vpc_endpoint_id }}"
+    resource:     "{{ result.result.vpc_endpoint_id }}"
     tags:         "{{ vpc.tags | combine({'Name':vpc.name + '-s3'}) }}"
-
-- name: "Set fact vpc.s3_endpoint_info"
-  set_fact:
-    vpc: "{{ vpc | combine({'s3_endpoint_info':ec2_vpc_endpoint_info.result}) }}"
