@@ -1,0 +1,7 @@
+---
+gitlab_metrics_server_port: 9252
+gitlab_session_server_port: 8093
+gitlab_runner_ec2_volume_size_GB: 20
+
+# do not assign a public IP address to the gitlab runner?
+gitlab_runner_private_address_only: false

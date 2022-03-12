@@ -1,0 +1,15 @@
+---
+roles:
+  - src: git+git@github.com:creatoreng/creator-aws-cli.git
+    name: creator-aws-cli
+    version: main
+
+  - src: git+git@github.com:creatoreng/creator-docker-ansible.git
+    name: creator-docker-ansible
+    version: main
+
+collections:
+  - name: community.general
+  - name: community.docker
+  - name: community.aws
+  - name: amazon.aws

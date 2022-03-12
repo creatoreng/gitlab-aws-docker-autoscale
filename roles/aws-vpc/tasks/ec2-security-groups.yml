@@ -1,0 +1,60 @@
+---
+- name: "Create EC2 security group public-ssh"
+  amazon.aws.ec2_group:
+    name:        "public-ssh"
+    description: "public SSH access"
+    vpc_id:      "{{ vpc.id }}"
+    region:      "{{ vpc.region }}"
+    tags:        "{{ vpc.tags }}"
+    rules:
+      - proto: tcp
+        ports:
+          - 22
+        cidr_ip: 0.0.0.0/0
+        rule_desc: SSH
+
+- name: "Create EC2 security group {{ vpc.name }}-icmp"
+  amazon.aws.ec2_group:
+    name:        "{{ vpc.name }}-icmp"
+    description: "ICMP access from VPC {{ vpc.name }}"
+    vpc_id:      "{{ vpc.id }}"
+    region:      "{{ vpc.region }}"
+    tags:        "{{ vpc.tags }}"
+    rules:
+      - proto: icmp
+        from_port: -1
+        to_port: -1
+        cidr_ip:
+          - "{{ intranet.cidr }}"
+        rule_desc: ICMP
+
+- name: "Create EC2 security group {{ vpc.name }}-ssh"
+  amazon.aws.ec2_group:
+    name:        "{{ vpc.name }}-ssh"
+    description: "SSH access from VPC {{ vpc.name }}"
+    vpc_id:      "{{ vpc.id }}"
+    region:      "{{ vpc.region }}"
+    tags:        "{{ vpc.tags }}"
+    rules:
+      - proto: tcp
+        ports:
+          - 22
+        cidr_ip:
+          - "{{ intranet.cidr }}"
+        rule_desc: SSH
+
+- name: "Create EC2 security group {{ vpc.name }}-http"
+  amazon.aws.ec2_group:
+    name:        "{{ vpc.name }}-http"
+    description: "HTTP access from VPC {{ vpc.name }}"
+    vpc_id:      "{{ vpc.id }}"
+    region:      "{{ vpc.region }}"
+    tags:        "{{ vpc.tags }}"
+    rules:
+      - proto: tcp
+        ports:
+          - 80
+          - 443
+        cidr_ip:
+          - "{{ intranet.cidr }}"
+        rule_desc: HTTP

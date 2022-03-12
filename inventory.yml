@@ -1,0 +1,16 @@
+all:
+  vars:
+    ansible_python_interpreter: /usr/bin/python3
+    ansible_private_role_vars:  true
+  hosts:
+    localhost:
+        ansible_connection: local
+  children:
+    gitlab_runners:
+      hosts:
+        gitlab-runner:
+          # TODO: Update this with the IP address
+          # of your gitlab runner EC2 instance
+          ansible_host: 0.0.0.0
+          ansible_user: ubuntu
+          ansible_ssh_private_key_file: files/gitlab-runner-ssh

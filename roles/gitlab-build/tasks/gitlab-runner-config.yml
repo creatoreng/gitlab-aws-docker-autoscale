@@ -1,0 +1,38 @@
+---
+# docker auth key file, stored typically in ~/.docker/config.json
+# this file is mapped into the docker container to allow docker authentication
+- name: Deploy docker authorization key
+  ansible.builtin.template:
+    src:  docker-config.json
+    dest: "{{ ansible_env.HOME }}/.docker/config.json"
+  when: docker_auth_key != ""
+
+- name: Deploy entrypoint
+  ansible.builtin.template:
+    src: entrypoint.sh
+    dest: /opt/gitlab-build/
+    mode: u+x,g+x,o+x
+
+- name: Deploy gitlab-runner base-config.toml
+  ansible.builtin.template:
+    src: base-config.toml
+    dest: /opt/gitlab-build/gitlab-runner
+
+- name: Deploy gitlab-runner gitlab-build.toml
+  ansible.builtin.template:
+    src: gitlab-build.toml
+    dest: /opt/gitlab-build/gitlab-runner
+
+# Create gitlab-runner configuration cache if does not exist,
+# otherwise leave as-is to allow gitlab to unregister runners
+# from the cached configuration
+- name: Create gitlab-runner config.toml.cache
+  ansible.builtin.copy:
+    content: ""
+    dest: /opt/gitlab-build/gitlab-runner/config.toml.cache
+    force: no
+
+- name: Set permissions on config.toml.cache
+  ansible.builtin.file:
+    path: /opt/gitlab-build/gitlab-runner/config.toml.cache
+    mode: u+rw,g+rw,o+rw

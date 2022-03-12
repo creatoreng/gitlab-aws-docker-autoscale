@@ -1,6 +1,6 @@
 ---
 - name: "Create {{ vpc.name }} VPC"
-  ec2_vpc_net:
+  amazon.aws.ec2_vpc_net:
     name:          "{{ vpc.name }}"
     cidr_block:    "{{ vpc.cidr }}"
     region:        "{{ vpc.region }}"
@@ -9,18 +9,20 @@
     tags:          "{{ vpc.tags }}"
   register: result
 
-- name: "Set fact vpc.vpc_info"
-  set_fact:
-    vpc: "{{ vpc | combine({ 'vpc_info': result.vpc }) }}"
+- name: "Set fact vpc.id"
+  ansible.builtin.set_fact:
+    vpc: "{{ vpc | combine({'id': result.vpc.id}) }}"
+  when: vpc.id == ""
 
 - name: "Create {{ vpc.name }} internet gateway"
-  ec2_vpc_igw:
-    vpc_id:        "{{ vpc.vpc_info.id }}"
+  amazon.aws.ec2_vpc_igw:
+    vpc_id:        "{{ vpc.id }}"
     region:        "{{ vpc.region }}"
     state:         "present"
     tags:          "{{ vpc.tags | combine({'Name':vpc.name}) }}"
   register: result
 
-- name: "Set fact: vpc.igw_info"
-  set_fact:
-    vpc: "{{ vpc | combine({ 'igw_info': result }) }}"
+- name: "Set fact vpc.inet_gateway_id"
+  ansible.builtin.set_fact:
+    vpc: "{{ vpc | combine({'inet_gateway_id': result.gateway_id}) }}"
+  when: vpc.inet_gateway_id == ""

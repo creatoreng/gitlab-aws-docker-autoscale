@@ -1,0 +1,25 @@
+---
+- name: "EC2 create security group gitlab-runner"
+  amazon.aws.ec2_group:
+    name:        "gitlab-runner"
+    description: "gitlab runner metrics and session services"
+    vpc_id:      "{{ vpc.id }}"
+    region:      "{{ vpc.region }}"
+    rules:
+      - proto: tcp
+        ports:
+          - "{{ gitlab_metrics_server_port }}"
+        cidr_ip:
+          - "{{ intranet.cidr }}"
+        rule_desc: "gitlab metrics server"
+      - proto: tcp
+        ports:
+          - "{{ gitlab_session_server_port }}"
+        cidr_ip: 0.0.0.0/0
+        rule_desc: "gitlab session server"
+
+- name: "EC2 key create gitlab-runner"
+  amazon.aws.ec2_key:
+    name:          "gitlab-runner"
+    key_material:  "{{ lookup('file', '../../files/gitlab-runner-ssh.pub') }}"
+    region:        "{{ vpc.region }}"

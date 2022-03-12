@@ -1,0 +1,16 @@
+---
+- name: check gitlab_runner_registration_token is defined
+  assert:
+    that: gitlab_runner_registration_token is defined
+
+- name: docker-machine install
+  ansible.builtin.import_tasks: docker-machine.yml
+
+- name: Configure filesystem
+  ansible.builtin.import_tasks: filesystem.yml
+
+- name: Configure gitlab-runner robotics-gitlab-build
+  ansible.builtin.import_tasks: gitlab-runner-config.yml
+
+- name: Start gitlab-runner robotics-gitlab-build
+  ansible.builtin.import_tasks: gitlab-runner.yml

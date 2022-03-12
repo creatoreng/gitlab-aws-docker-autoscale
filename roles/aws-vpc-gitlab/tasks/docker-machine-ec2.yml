@@ -1,0 +1,56 @@
+---
+- name: "IAM managed policy create docker-machine-spawn"
+  community.aws.iam_managed_policy:
+    policy_name:        "docker-machine-spawn"
+    policy_description: "Spawn EC2 instances and pass IAM roles to docker-machines"
+    state:              present
+    policy: |
+      {
+        "Version": "2012-10-17",
+        "Statement": [
+          {
+            "Effect": "Allow",
+            "Action": [
+              "ec2:StartInstances",
+              "ec2:RunInstances",
+              "ec2:DescribeInstances",
+              "ec2:RebootInstances",
+              "ec2:StopInstances",
+              "ec2:TerminateInstances",
+
+              "ec2:CreateTags",
+
+              "ec2:DescribeKeyPairs",
+              "ec2:ImportKeyPair",
+              "ec2:CreateKeyPair",
+              "ec2:DeleteKeyPair",
+
+              "ec2:DescribeSubnets",
+              "ec2:DescribeSecurityGroups"
+            ],
+            "Resource": "*"
+          }
+        ]
+      }
+
+- name: "EC2 create security group docker-machine-instance"
+  amazon.aws.ec2_group:
+    name:        "docker-machine-instance"
+    description: "docker-machine instance"
+    vpc_id:      "{{ vpc.id }}"
+    region:      "{{ vpc.region }}"
+    rules:
+      - proto: tcp
+        ports:
+          - 22
+        cidr_ip:
+          - "{{ subnet_private.cidr }}"
+          - "{{ subnet_public.cidr }}"
+        rule_desc: SSH
+      - proto: tcp
+        ports:
+          - 2376
+        cidr_ip:
+          - "{{ subnet_private.cidr }}"
+          - "{{ subnet_public.cidr }}"
+        rule_desc: "docker machine instance"

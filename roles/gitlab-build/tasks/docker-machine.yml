@@ -1,0 +1,7 @@
+---
+- name: docker-machine install
+  ansible.builtin.get_url:
+    url:   "https://github.com/docker/machine/releases/download/v0.16.2/docker-machine-{{ ansible_system }}-{{ ansible_architecture }}"
+    dest:  /usr/local/bin/docker-machine
+    mode:  u+x,g+x,o+x
+  become: true

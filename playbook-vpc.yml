@@ -1,0 +1,19 @@
+# AWS EC2 playbook to create a gitlab runner
+---
+- hosts: localhost
+  connection: local
+  gather_facts: false
+  environment:
+    # Ansible AWS modules
+    AWS_ACCESS_KEY: "{{ aws_access_key }}"
+    AWS_SECRET_KEY: "{{ aws_secret_key }}"
+    AWS_EC2_REGION: "us-east-1"
+
+    # AWS CLI
+    AWS_ACCESS_KEY_ID:     "{{ aws_access_key }}"
+    AWS_SECRET_ACCESS_KEY: "{{ aws_secret_key }}"
+    AWS_DEFAULT_REGION:    "us-east-1"
+
+  roles:
+    - name: "Create {{ vpc.name }} VPC"
+      role: aws-vpc

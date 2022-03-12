@@ -1,0 +1,19 @@
+# Ansible playbook to configure an existing EC2 instance with a gitlab-runner
+---
+- hosts: gitlab_runners
+  gather_facts: true
+  roles:
+    - name: ubuntu-common
+      role: ubuntu-common
+
+    - name: creator-docker-ansible
+      role: creator-docker-ansible
+
+    - name: creator-aws-cli-ansible
+      role: creator-aws-cli-ansible
+
+    - name: gitlab-build
+      role: gitlab-build
+      vars:
+        gitlab_runner_ec2_volume_size_GB: 20
+        gitlab_machine_instance_type: t3.large

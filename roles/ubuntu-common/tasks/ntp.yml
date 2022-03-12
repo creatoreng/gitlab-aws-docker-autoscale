@@ -1,0 +1,6 @@
+---
+- name: Install ntp
+  ansible.builtin.apt:
+    pkg:   ntp
+    state: latest
+  become: true

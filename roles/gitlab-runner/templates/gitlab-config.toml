@@ -1,8 +1,0 @@
-concurrent = {{ runner.concurrent }}
-check_interval = 0
-listen_address = ":{{ gitlab_metrics_server_port }}"
-
-[session_server]
-  listen_address = ":{{ gitlab_session_server_port }}"
-  advertise_address = "{{ ansible_ssh_host }}:{{ gitlab_session_server_port }}"
-  session_timeout = 1800

@@ -1,0 +1,3 @@
+---
+# s3 artifact bucket name (must be unique across all of s3)
+s3_artifact_bucket:  ""
