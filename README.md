@@ -13,7 +13,7 @@ workers on-demand.
 * Register a newly provisioned gitlab runner with your gitlab cloud account.
 * Deploy docker credentials to allow your runner to use private docker images (optional).
 * Create an s3 bucket for storing artifacts and cache.
-* Example source code that may be used with the gitlab runner. See [creatoreng/gitlab-aws-docker-autoscale-example](creatoreng/gitlab-aws-docker-autoscale-example)
+* Example source code that may be used with the gitlab runner. See [creatoreng/gitlab-aws-docker-autoscale-example](https://github.com/creatoreng/gitlab-aws-docker-autoscale-example)
 
 ### Security features
 * gitlab runner defaults to the public subnet with a public IP address,
